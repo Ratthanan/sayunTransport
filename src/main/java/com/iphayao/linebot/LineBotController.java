@@ -1,6 +1,8 @@
 package com.iphayao.linebot;
 
 import com.google.common.io.ByteStreams;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.iphayao.linebot.flex.*;
 import com.iphayao.linebot.helper.RichMenuHelper;
 import com.iphayao.linebot.service.AppMailServiceImp;
@@ -24,18 +26,19 @@ import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.*;
+import org.springframework.http.converter.FormHttpMessageConverter;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 @Slf4j
@@ -45,17 +48,16 @@ public class LineBotController {
     @Autowired
     private LineMessagingClient lineMessagingClient;
 
-//    private String pathImageFlex = new ClassPathResource("richmenu/richmenu-flexs.jpg").getFilename();
-//    private String pathConfigFlex = new ClassPathResource("richmenu/richmenu-flexs.yml").getFilename();
-
-//    RichMenuHelper.createRichMenu(lineMessagingClient, pathConfigFlex, pathImageFlex, userId);
-
+    protected RestTemplate restTemplate;
     /////////////////////////////รับข้อความ////////////////////////////////
     @EventMapping
     public void handleTextMessage(MessageEvent<TextMessageContent> event) throws IOException {
         log.info(event.toString());
         handleTextContent(event.getReplyToken(), event, event.getMessage());
     }
+
+
+
 
     /////////////////////////////Sticker////////////////////////////////
     @EventMapping
@@ -132,74 +134,105 @@ public class LineBotController {
 
 
     private void handleTextContent(String replyToken, Event event, TextMessageContent content) throws IOException {
-        String text = content.getText();
+        String resultText = content.getText();
+        String type = "6ล้อ";
         String userId = event.getSource().getUserId();
-        switch (text) {
-            case "Flex": {
-                String pathImageFlex = new ClassPathResource("richmenu/richmenu-flexs.jpg").getFile().getAbsolutePath();
-                String pathConfigFlex = new ClassPathResource("richmenu/richmenu-flexs.yml").getFile().getAbsolutePath();
-                RichMenuHelper.createRichMenu(lineMessagingClient, pathConfigFlex, pathImageFlex, userId);
-                break;
-            }
-            case "Flex Back": {
-                RichMenuHelper.deleteRichMenu(lineMessagingClient, userId);
-                break;
-            }
-            case "Flex Restaurant": {
-                this.reply(replyToken, new RestaurantFlexMessageSupplier().get());
-                break;
-            }
-            case "Flex Menu": {
-                this.reply(replyToken, new RestaurantMenuFlexMessageSupplier().get());
-                break;
-            }
-            case "Flex Receipt": {
-                this.reply(replyToken, new ReceiptFlexMessageSupplier().get());
-                break;
-            }
-            case "Flex News": {
-                this.reply(replyToken, new NewsFlexMessageSupplier().get());
-                break;
-            }
-            case "Flex Ticket": {
-                this.reply(replyToken, new TicketFlexMessageSupplier().get());
-                break;
-            }
-            case "Flex Catalogue": {
-                this.reply(replyToken, new CatalogueFlexMessageSupplier().get());
-                break;
-            }
-            default:
-                boolean hasText = text.contains("@");
-                boolean hasText3 = text.contains("ขอเข้ากลุ่ม");
-                if (hasText3 == true) {
-                    reply(replyToken, Arrays.asList(
-                            new TextMessage("https://line.me/R/ti/g/vYYHUCuMG_")
-                    ));
-                } else if ((AppMailServiceImp.checkTextMatches(text) == true) && (hasText == false)) {
-                    if (userId != null) {
-                        lineMessagingClient.getProfile(userId)
-                                .whenComplete((profile, throwable) -> {
-                                    if (throwable != null) {
-                                        this.replyText(replyToken, throwable.getMessage());
-                                        return;
-                                    }
-                                    this.reply(replyToken, Arrays.asList(
-                                            new TextMessage("มี keyword ไม่มี @"),
-                                            new TextMessage("ชื่อคุณคือ: " + profile.getDisplayName()),
-                                            new TextMessage("ID คุณคือ: " + profile.getUserId())
-                                    ));
-                                });
-                    }
-                } else if ((hasText == true) && (AppMailServiceImp.checkTextMatches(text) == true)) {
-                    if (userId != null) {
-                        reply(replyToken, Arrays.asList(
-                                new TextMessage("มี keyword และมี @"),
-                                new TextMessage(text)
-                        ));
-                    }
-                }
-        }
+
+
+//        String url = "localhost:8002/DPS/calculates";
+//        String jsonString = "";
+//
+//        MediaType mediaType = new MediaType("application", "json", Charset.forName("UTF-8"));
+//        HttpHeaders headers = new HttpHeaders();
+//        headers.setContentType(mediaType);
+//
+//        Map<String, String> body = new HashMap<String, String>();
+//
+//
+//
+//        HttpEntity<String> entity = new HttpEntity<String>(jsonString, headers);
+//
+//
+//
+//        FormHttpMessageConverter converter = new FormHttpMessageConverter();
+//        converter.setSupportedMediaTypes(Arrays.asList(mediaType));
+//
+//        restTemplate.getMessageConverters().add(converter);
+//        ResponseEntity<String> reponseEntity = restTemplate.postForEntity(url, entity, String.class);
+
+
+
+
+        this.reply(replyToken, Arrays.asList(
+                new TextMessage("ปลายทาง =  "+resultText),
+                new TextMessage("ประเภทรถ =  "+type),
+                new TextMessage("ราคา =  ")
+        ));
+
+
+
+//        switch (text) {
+//            case "Flex": {
+//                String pathImageFlex = new ClassPathResource("richmenu/richmenu-flexs.jpg").getFile().getAbsolutePath();
+//                String pathConfigFlex = new ClassPathResource("richmenu/richmenu-flexs.yml").getFile().getAbsolutePath();
+//                RichMenuHelper.createRichMenu(lineMessagingClient, pathConfigFlex, pathImageFlex, userId);
+//                break;
+//            }
+//            case "Flex Back": {
+//                RichMenuHelper.deleteRichMenu(lineMessagingClient, userId);
+//                break;
+//            }
+//            case "Flex Restaurant": {
+//                this.reply(replyToken, new RestaurantFlexMessageSupplier().get());
+//                break;
+//            }
+//            case "Flex Menu": {
+//                this.reply(replyToken, new RestaurantMenuFlexMessageSupplier().get());
+//                break;
+//            }
+//            case "Flex Receipt": {
+//                this.reply(replyToken, new ReceiptFlexMessageSupplier().get());
+//                break;
+//            }
+//            case "Flex News": {
+//                this.reply(replyToken, new NewsFlexMessageSupplier().get());
+//                break;
+//            }
+//            case "Flex Ticket": {
+//                this.reply(replyToken, new TicketFlexMessageSupplier().get());
+//                break;
+//            }
+//            case "Flex Catalogue": {
+//                this.reply(replyToken, new CatalogueFlexMessageSupplier().get());
+//                break;
+//            }
+//            default:
+//                boolean hasText = text.contains("@");
+//                boolean hasText3 = text.contains("ขอเข้ากลุ่ม");
+//                if (hasText3 == true) {
+//                    reply(replyToken, Arrays.asList(
+//                            new TextMessage("https://line.me/R/ti/g/vYYHUCuMG_")
+//                    ));
+//                } else if ((AppMailServiceImp.checkTextMatches(text) == true) && (hasText == false)) {
+//                    if (userId != null) {
+//                        lineMessagingClient.getProfile(userId)
+//                                .whenComplete((profile, throwable) -> {
+//                                    if (throwable != null) {
+//                                        this.replyText(replyToken, throwable.getMessage());
+//                                        return;
+//                                    }
+//
+//                                });
+//                    }
+//                } else if ((hasText == true) && (AppMailServiceImp.checkTextMatches(text) == true)) {
+//                    if (userId != null) {
+//                        reply(replyToken, Arrays.asList(
+//                                new TextMessage("มี keyword และมี @"),
+//                                new TextMessage(text)
+//                        ));
+//                    }
+//                }
+//        }
     }
 
 
